@@ -28,6 +28,8 @@ import android.service.notification.StatusBarNotification;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
+import android.app.NotificationChannel;
+import android.support.v4.os.BuildCompat;
 
 import com.android.deskclock.AlarmClockFragment;
 import com.android.deskclock.AlarmUtils;
@@ -82,11 +84,14 @@ final class AlarmNotifications {
      */
     private static final int ALARM_FIRING_NOTIFICATION_ID = Integer.MAX_VALUE - 7;
 
+    private static final String CHANNEL_ID_ALARM = "alarm";
+
     static synchronized void showLowPriorityNotification(Context context,
             AlarmInstance instance) {
         LogUtils.v("Displaying low priority notification for alarm instance: " + instance.mId);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+        createNotificationAlarmChannel(context, NotificationManager.IMPORTANCE_LOW);
+        Notification.Builder builder = new Notification.Builder(context)
                 .setShowWhen(false)
                 .setContentTitle(context.getString(
                         R.string.alarm_alert_predismiss_title))
@@ -98,6 +103,7 @@ final class AlarmNotifications {
                 .setPriority(NotificationCompat.PRIORITY_DEFAULT)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setChannelId(CHANNEL_ID_ALARM)
                 .setLocalOnly(true);
 
         if (Utils.isNOrLater()) {
@@ -135,7 +141,8 @@ final class AlarmNotifications {
             AlarmInstance instance) {
         LogUtils.v("Displaying high priority notification for alarm instance: " + instance.mId);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+        createNotificationAlarmChannel(context, NotificationManager.IMPORTANCE_HIGH);
+        Notification.Builder builder = new Notification.Builder(context)
                 .setShowWhen(false)
                 .setContentTitle(context.getString(R.string.alarm_alert_predismiss_title))
                 .setContentText(AlarmUtils.getAlarmText(context, instance, true /* includeLabel */))
@@ -146,6 +153,7 @@ final class AlarmNotifications {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setChannelId(CHANNEL_ID_ALARM)
                 .setLocalOnly(true);
 
         if (Utils.isNOrLater()) {
@@ -243,7 +251,9 @@ final class AlarmNotifications {
         Notification summary = getActiveGroupSummaryNotification(context, UPCOMING_GROUP_KEY);
         if (summary == null
                 || !Objects.equals(summary.contentIntent, firstUpcoming.contentIntent)) {
-            summary = new NotificationCompat.Builder(context)
+
+            createNotificationAlarmChannel(context, NotificationManager.IMPORTANCE_LOW);
+            summary = new Notification.Builder(context)
                     .setShowWhen(false)
                     .setContentIntent(firstUpcoming.contentIntent)
                     .setColor(ContextCompat.getColor(context, R.color.default_background))
@@ -253,6 +263,7 @@ final class AlarmNotifications {
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setCategory(NotificationCompat.CATEGORY_ALARM)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setChannelId(CHANNEL_ID_ALARM)
                     .setLocalOnly(true)
                     .build();
             nm.notify(ALARM_GROUP_NOTIFICATION_ID, summary);
@@ -277,7 +288,9 @@ final class AlarmNotifications {
         Notification summary = getActiveGroupSummaryNotification(context, MISSED_GROUP_KEY);
         if (summary == null
                 || !Objects.equals(summary.contentIntent, firstMissed.contentIntent)) {
-            summary = new NotificationCompat.Builder(context)
+
+            createNotificationAlarmChannel(context, NotificationManager.IMPORTANCE_LOW);
+            summary = new Notification.Builder(context)
                     .setShowWhen(false)
                     .setContentIntent(firstMissed.contentIntent)
                     .setColor(ContextCompat.getColor(context, R.color.default_background))
@@ -287,6 +300,7 @@ final class AlarmNotifications {
                     .setPriority(NotificationCompat.PRIORITY_HIGH)
                     .setCategory(NotificationCompat.CATEGORY_ALARM)
                     .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                    .setChannelId(CHANNEL_ID_ALARM)
                     .setLocalOnly(true)
                     .build();
             nm.notify(ALARM_GROUP_MISSED_NOTIFICATION_ID, summary);
@@ -297,7 +311,8 @@ final class AlarmNotifications {
             AlarmInstance instance) {
         LogUtils.v("Displaying snoozed notification for alarm instance: " + instance.mId);
 
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+        createNotificationAlarmChannel(context, NotificationManager.IMPORTANCE_LOW);
+        Notification.Builder builder = new Notification.Builder(context)
                 .setShowWhen(false)
                 .setContentTitle(instance.getLabelOrDefault(context))
                 .setContentText(context.getString(R.string.alarm_alert_snooze_until,
@@ -309,6 +324,7 @@ final class AlarmNotifications {
                 .setPriority(NotificationCompat.PRIORITY_MAX)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setChannelId(CHANNEL_ID_ALARM)
                 .setLocalOnly(true);
 
         if (Utils.isNOrLater()) {
@@ -341,7 +357,9 @@ final class AlarmNotifications {
 
         String label = instance.mLabel;
         String alarmTime = AlarmUtils.getFormattedTime(context, instance.getAlarmTime());
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(context)
+
+        createNotificationAlarmChannel(context, NotificationManager.IMPORTANCE_LOW);
+        Notification.Builder builder = new Notification.Builder(context)
                 .setShowWhen(false)
                 .setContentTitle(context.getString(R.string.alarm_missed_title))
                 .setContentText(instance.mLabel.isEmpty() ? alarmTime :
@@ -352,6 +370,7 @@ final class AlarmNotifications {
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setChannelId(CHANNEL_ID_ALARM)
                 .setLocalOnly(true);
 
         if (Utils.isNOrLater()) {
@@ -384,7 +403,9 @@ final class AlarmNotifications {
         LogUtils.v("Displaying alarm notification for alarm instance: " + instance.mId);
 
         Resources resources = service.getResources();
-        NotificationCompat.Builder notification = new NotificationCompat.Builder(service)
+
+        createNotificationAlarmChannel(service, NotificationManager.IMPORTANCE_HIGH);
+        Notification.Builder notification = new Notification.Builder(service)
                 .setContentTitle(instance.getLabelOrDefault(service))
                 .setContentText(AlarmUtils.getFormattedTime(service, instance.getAlarmTime()))
                 .setColor(ContextCompat.getColor(service, R.color.default_background))
@@ -395,6 +416,7 @@ final class AlarmNotifications {
                 .setWhen(0)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                .setChannelId(CHANNEL_ID_ALARM)
                 .setLocalOnly(true);
 
         // Setup Snooze Action
@@ -488,5 +510,16 @@ final class AlarmNotifications {
         final String timeKey = SORT_KEY_FORMAT.format(instance.getAlarmTime().getTime());
         final boolean missedAlarm = instance.mAlarmState == AlarmInstance.MISSED_STATE;
         return missedAlarm ? ("MISSED " + timeKey) : timeKey;
+    }
+
+    private static void createNotificationAlarmChannel(Context context, int important) {
+        if (!BuildCompat.isAtLeastO()) {
+            return;
+        }
+        final NotificationManager nm = context.getSystemService(NotificationManager.class);
+        final NotificationChannel channel = new NotificationChannel(CHANNEL_ID_ALARM,
+            context.getString(R.string.default_label),
+            important);
+            nm.createNotificationChannel(channel);
     }
 }
